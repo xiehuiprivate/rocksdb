@@ -23,3 +23,14 @@ void Java_org_rocksdb_ColumnFamilyHandle_disposeInternal(
   auto it = reinterpret_cast<rocksdb::ColumnFamilyHandle*>(handle);
   delete it;
 }
+
+jbyteArray Java_org_rocksdb_ColumnFamilyHandle_getName(
+  JNIEnv* env, jobject jobj, jlong handle) {
+    auto it = reinterpret_cast<rocksdb::ColumnFamilyHandle*>(handle);
+    std::string cfName = it->GetName();
+    jbyteArray jcfName = env->NewByteArray(static_cast<jsize>(cfName.size()));
+    env->SetByteArrayRegion(jcfName, static_cast<jsize>(cfName.size()),
+                    reinterpret_cast<const jbyte*>(cfName.c_str()));
+
+    return jcfName;
+  }

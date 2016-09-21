@@ -36,7 +36,13 @@ public class ColumnFamilyHandle extends RocksObject {
     }
   }
 
+  public byte[] getName(){
+    assert(isInitialized());
+    return getName(nativeHandle_);
+  }
   @Override protected final native void disposeInternal(final long handle);
+
+  private native byte[] getName(long handle);
 
   private final RocksDB rocksDB_;
 }
