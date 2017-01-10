@@ -24,7 +24,9 @@
 
 #include <stdint.h>
 #include <memory>
+#include <string>
 #include "rocksdb/slice.h"
+#include "rocksdb/statistics.h"
 #include "rocksdb/status.h"
 
 namespace rocksdb {
@@ -96,7 +98,9 @@ class Cache {
   // Else return a handle that corresponds to the mapping.  The caller
   // must call this->Release(handle) when the returned mapping is no
   // longer needed.
-  virtual Handle* Lookup(const Slice& key) = 0;
+  // If stats is not nullptr, relative tickers could be used inside the
+  // function.
+  virtual Handle* Lookup(const Slice& key, Statistics* stats = nullptr) = 0;
 
   // Release a mapping returned by a previous Lookup().
   // REQUIRES: handle must not have been released yet.
@@ -163,6 +167,8 @@ class Cache {
   // Remove all entries.
   // Prerequisit: no entry is referenced.
   virtual void EraseUnRefEntries() = 0;
+
+  virtual std::string GetPrintableOptions() const { return ""; }
 
  private:
   // No copying allowed

@@ -224,13 +224,13 @@ class CacheTierBenchmark {
     // Lookup in cache
     StopWatchNano timer(Env::Default(), /*auto_start=*/true);
     std::unique_ptr<char[]> block;
-    uint64_t size;
+    size_t size;
     Status status = cache_->Lookup(key, &block, &size);
     if (!status.ok()) {
       fprintf(stderr, "%s\n", status.ToString().c_str());
     }
     assert(status.ok());
-    assert(size == (uint64_t)FLAGS_iosize);
+    assert(size == (size_t) FLAGS_iosize);
 
     // adjust stats
     const size_t elapsed_micro = timer.ElapsedNanos() / 1000;
@@ -302,9 +302,9 @@ class CacheTierBenchmark {
 // main
 //
 int main(int argc, char** argv) {
-  google::SetUsageMessage(std::string("\nUSAGE:\n") + std::string(argv[0]) +
+  GFLAGS::SetUsageMessage(std::string("\nUSAGE:\n") + std::string(argv[0]) +
                           " [OPTIONS]...");
-  google::ParseCommandLineFlags(&argc, &argv, false);
+  GFLAGS::ParseCommandLineFlags(&argc, &argv, false);
 
   std::ostringstream msg;
   msg << "Config" << std::endl

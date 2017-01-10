@@ -47,6 +47,9 @@ namespace {
   Status SeekToMetaBlock(InternalIterator* meta_iter,
                          const std::string& block_name, bool* is_found,
                          BlockHandle* block_handle = nullptr) {
+    if (block_handle != nullptr) {
+      *block_handle = BlockHandle::NullBlockHandle();
+    }
     *is_found = true;
     meta_iter->Seek(block_name);
     if (meta_iter->status().ok()) {
@@ -168,6 +171,8 @@ const std::string TablePropertiesNames::kColumnFamilyName =
 const std::string TablePropertiesNames::kComparator = "rocksdb.comparator";
 const std::string TablePropertiesNames::kMergeOperator =
     "rocksdb.merge.operator";
+const std::string TablePropertiesNames::kPrefixExtractorName =
+    "rocksdb.prefix.extractor.name";
 const std::string TablePropertiesNames::kPropertyCollectors =
     "rocksdb.property.collectors";
 const std::string TablePropertiesNames::kCompression = "rocksdb.compression";

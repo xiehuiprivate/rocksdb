@@ -135,9 +135,9 @@ public class OptionsTest {
   @Test
   public void maxBytesForLevelMultiplier() {
     try (final Options opt = new Options()) {
-      final int intValue = rand.nextInt();
-      opt.setMaxBytesForLevelMultiplier(intValue);
-      assertThat(opt.maxBytesForLevelMultiplier()).isEqualTo(intValue);
+      final double doubleValue = rand.nextDouble();
+      opt.setMaxBytesForLevelMultiplier(doubleValue);
+      assertThat(opt.maxBytesForLevelMultiplier()).isEqualTo(doubleValue);
     }
   }
 
@@ -153,29 +153,11 @@ public class OptionsTest {
   }
 
   @Test
-  public void expandedCompactionFactor() {
+  public void maxCompactionBytes() {
     try (final Options opt = new Options()) {
-      final int intValue = rand.nextInt();
-      opt.setExpandedCompactionFactor(intValue);
-      assertThat(opt.expandedCompactionFactor()).isEqualTo(intValue);
-    }
-  }
-
-  @Test
-  public void sourceCompactionFactor() {
-    try (final Options opt = new Options()) {
-      final int intValue = rand.nextInt();
-      opt.setSourceCompactionFactor(intValue);
-      assertThat(opt.sourceCompactionFactor()).isEqualTo(intValue);
-    }
-  }
-
-  @Test
-  public void maxGrandparentOverlapFactor() {
-    try (final Options opt = new Options()) {
-      final int intValue = rand.nextInt();
-      opt.setMaxGrandparentOverlapFactor(intValue);
-      assertThat(opt.maxGrandparentOverlapFactor()).isEqualTo(intValue);
+      final long longValue = rand.nextLong();
+      opt.setMaxCompactionBytes(longValue);
+      assertThat(opt.maxCompactionBytes()).isEqualTo(longValue);
     }
   }
 
@@ -590,11 +572,20 @@ public class OptionsTest {
   }
 
   @Test
-  public void allowOsBuffer() {
-    try (final Options opt = new Options()) {
+  public void useDirectReads() {
+    try(final Options opt = new Options()) {
       final boolean boolValue = rand.nextBoolean();
-      opt.setAllowOsBuffer(boolValue);
-      assertThat(opt.allowOsBuffer()).isEqualTo(boolValue);
+      opt.setUseDirectReads(boolValue);
+      assertThat(opt.useDirectReads()).isEqualTo(boolValue);
+    }
+  }
+
+  @Test
+  public void useDirectWrites() {
+    try(final Options opt = new Options()) {
+      final boolean boolValue = rand.nextBoolean();
+      opt.setUseDirectWrites(boolValue);
+      assertThat(opt.useDirectWrites()).isEqualTo(boolValue);
     }
   }
 
@@ -815,6 +806,19 @@ public class OptionsTest {
 
       anotherOptions.setRateLimiterConfig(
           new GenericRateLimiterConfig(1000));
+    }
+  }
+
+  @Test
+  public void rateLimiter() {
+    try (final Options options = new Options();
+         final Options anotherOptions = new Options()) {
+      final RateLimiter rateLimiter =
+          new RateLimiter(1000, 100 * 1000, 1);
+      options.setRateLimiter(rateLimiter);
+      // Test with parameter initialization
+      anotherOptions.setRateLimiter(
+          new RateLimiter(1000));
     }
   }
 

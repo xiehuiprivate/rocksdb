@@ -22,6 +22,7 @@
 #include "rocksdb/table.h"
 #include "table/table_properties_internal.h"
 #include "table/table_reader.h"
+#include "util/cf_options.h"
 #include "util/coding.h"
 #include "util/file_reader_writer.h"
 
@@ -161,6 +162,18 @@ class BlockBasedTable : public TableReader {
   static InternalIterator* NewDataBlockIterator(
       Rep* rep, const ReadOptions& ro, const Slice& index_value,
       BlockIter* input_iter = nullptr);
+  // If block cache enabled (compressed or uncompressed), looks for the block
+  // identified by handle in (1) uncompressed cache, (2) compressed cache, and
+  // then (3) file. If found, inserts into the cache(s) that were searched
+  // unsuccessfully (e.g., if found in file, will add to both uncompressed and
+  // compressed caches if they're enabled).
+  //
+  // @param block_entry value is set to the uncompressed block if found. If
+  //    in uncompressed block cache, also sets cache_handle to reference that
+  //    block.
+  static Status MaybeLoadDataBlockToCache(
+      Rep* rep, const ReadOptions& ro, const BlockHandle& handle,
+      Slice compression_dict, CachableEntry<Block>* block_entry);
 
   // For the following two functions:
   // if `no_io == true`, we will not try to read filter/index from sst file
@@ -190,9 +203,9 @@ class BlockBasedTable : public TableReader {
   static Status GetDataBlockFromCache(
       const Slice& block_cache_key, const Slice& compressed_block_cache_key,
       Cache* block_cache, Cache* block_cache_compressed,
-      const ImmutableCFOptions &ioptions, const ReadOptions& read_options,
+      const ImmutableCFOptions& ioptions, const ReadOptions& read_options,
       BlockBasedTable::CachableEntry<Block>* block, uint32_t format_version,
-      const Slice& compression_dict);
+      const Slice& compression_dict, size_t read_amp_bytes_per_bit);
 
   // Put a raw block (maybe compressed) to the corresponding block caches.
   // This method will perform decompression against raw_block if needed and then
@@ -207,9 +220,9 @@ class BlockBasedTable : public TableReader {
   static Status PutDataBlockToCache(
       const Slice& block_cache_key, const Slice& compressed_block_cache_key,
       Cache* block_cache, Cache* block_cache_compressed,
-      const ReadOptions& read_options, const ImmutableCFOptions &ioptions,
+      const ReadOptions& read_options, const ImmutableCFOptions& ioptions,
       CachableEntry<Block>* block, Block* raw_block, uint32_t format_version,
-      const Slice& compression_dict);
+      const Slice& compression_dict, size_t read_amp_bytes_per_bit);
 
   // Calls (*handle_result)(arg, ...) repeatedly, starting with the entry found
   // after a call to Seek(key), until handle_result returns false.
@@ -252,6 +265,8 @@ class BlockBasedTable : public TableReader {
   // Helper functions for DumpTable()
   Status DumpIndexBlock(WritableFile* out_file);
   Status DumpDataBlocks(WritableFile* out_file);
+  void DumpKeyValue(const Slice& key, const Slice& value,
+                    WritableFile* out_file);
 
   // No copying allowed
   explicit BlockBasedTable(const TableReader&) = delete;

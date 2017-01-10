@@ -282,11 +282,13 @@ Status GetStringFromDBOptions(std::string* opts_str,
                               const std::string& delimiter = ";  ");
 
 Status GetStringFromColumnFamilyOptions(std::string* opts_str,
-                                        const ColumnFamilyOptions& db_options,
+                                        const ColumnFamilyOptions& cf_options,
                                         const std::string& delimiter = ";  ");
 
 Status GetStringFromCompressionType(std::string* compression_str,
                                     CompressionType compression_type);
+
+std::vector<CompressionType> GetSupportedCompressions();
 
 Status GetBlockBasedTableOptionsFromString(
     const BlockBasedTableOptions& table_options,
@@ -304,6 +306,9 @@ Status GetMemTableRepFactoryFromString(
 
 Status GetOptionsFromString(const Options& base_options,
                             const std::string& opts_str, Options* new_options);
+
+Status StringToMap(const std::string& opts_str,
+                   std::unordered_map<std::string, std::string>* opts_map);
 
 // Request stopping background work, if wait is true wait until it's done
 void CancelAllBackgroundWork(DB* db, bool wait = false);

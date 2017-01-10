@@ -109,7 +109,7 @@ Status TransactionDBImpl::Initialize(
     }
 
     s = real_trx->RebuildFromWriteBatch(recovered_trx->batch_);
-    real_trx->exec_status_ = Transaction::PREPARED;
+    real_trx->SetState(Transaction::PREPARED);
     if (!s.ok()) {
       break;
     }
@@ -266,8 +266,8 @@ Status TransactionDBImpl::DropColumnFamily(ColumnFamilyHandle* column_family) {
 }
 
 Status TransactionDBImpl::TryLock(TransactionImpl* txn, uint32_t cfh_id,
-                                  const std::string& key) {
-  return lock_mgr_.TryLock(txn, cfh_id, key, GetEnv());
+                                  const std::string& key, bool exclusive) {
+  return lock_mgr_.TryLock(txn, cfh_id, key, GetEnv(), exclusive);
 }
 
 void TransactionDBImpl::UnLock(TransactionImpl* txn,
@@ -435,17 +435,21 @@ void TransactionDBImpl::GetAllPreparedTransactions(
   transv->clear();
   std::lock_guard<std::mutex> lock(name_map_mutex_);
   for (auto it = transactions_.begin(); it != transactions_.end(); it++) {
-    if (it->second->exec_status_ == Transaction::PREPARED) {
+    if (it->second->GetState() == Transaction::PREPARED) {
       transv->push_back(it->second);
     }
   }
+}
+
+TransactionLockMgr::LockStatusData TransactionDBImpl::GetLockStatusData() {
+  return lock_mgr_.GetLockStatusData();
 }
 
 void TransactionDBImpl::RegisterTransaction(Transaction* txn) {
   assert(txn);
   assert(txn->GetName().length() > 0);
   assert(GetTransactionByName(txn->GetName()) == nullptr);
-  assert(txn->exec_status_ == Transaction::STARTED);
+  assert(txn->GetState() == Transaction::STARTED);
   std::lock_guard<std::mutex> lock(name_map_mutex_);
   transactions_[txn->GetName()] = txn;
 }

@@ -700,13 +700,27 @@ void Java_org_rocksdb_Options_setMemTableFactory(
 
 /*
  * Class:     org_rocksdb_Options
+ * Method:    setOldRateLimiter
+ * Signature: (JJ)V
+ */
+void Java_org_rocksdb_Options_setOldRateLimiter(
+    JNIEnv* env, jobject jobj, jlong jhandle, jlong jrate_limiter_handle) {
+  reinterpret_cast<rocksdb::Options*>(jhandle)->rate_limiter.reset(
+      reinterpret_cast<rocksdb::RateLimiter*>(jrate_limiter_handle));
+}
+
+/*
+ * Class:     org_rocksdb_Options
  * Method:    setRateLimiter
  * Signature: (JJ)V
  */
 void Java_org_rocksdb_Options_setRateLimiter(
     JNIEnv* env, jobject jobj, jlong jhandle, jlong jrate_limiter_handle) {
-  reinterpret_cast<rocksdb::Options*>(jhandle)->rate_limiter.reset(
-      reinterpret_cast<rocksdb::RateLimiter*>(jrate_limiter_handle));
+  std::shared_ptr<rocksdb::RateLimiter> *pRateLimiter =
+      reinterpret_cast<std::shared_ptr<rocksdb::RateLimiter> *>(
+          jrate_limiter_handle);
+  reinterpret_cast<rocksdb::Options*>(jhandle)->
+      rate_limiter = *pRateLimiter;
 }
 
 /*
@@ -857,27 +871,6 @@ void Java_org_rocksdb_Options_setManifestPreallocationSize(
 }
 
 /*
- * Class:     org_rocksdb_Options
- * Method:    allowOsBuffer
- * Signature: (J)Z
- */
-jboolean Java_org_rocksdb_Options_allowOsBuffer(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::Options*>(jhandle)->allow_os_buffer;
-}
-
-/*
- * Class:     org_rocksdb_Options
- * Method:    setAllowOsBuffer
- * Signature: (JZ)V
- */
-void Java_org_rocksdb_Options_setAllowOsBuffer(
-    JNIEnv* env, jobject jobj, jlong jhandle, jboolean allow_os_buffer) {
-  reinterpret_cast<rocksdb::Options*>(jhandle)->allow_os_buffer =
-      static_cast<bool>(allow_os_buffer);
-}
-
-/*
  * Method:    setTableFactory
  * Signature: (JJ)V
  */
@@ -927,6 +920,50 @@ void Java_org_rocksdb_Options_setAllowMmapWrites(
     JNIEnv* env, jobject jobj, jlong jhandle, jboolean allow_mmap_writes) {
   reinterpret_cast<rocksdb::Options*>(jhandle)->allow_mmap_writes =
       static_cast<bool>(allow_mmap_writes);
+}
+
+/*
+ * Class:     org_rocksdb_Options
+ * Method:    useDirectReads
+ * Signature: (J)Z
+ */
+jboolean Java_org_rocksdb_Options_useDirectReads(JNIEnv* env, jobject jobj,
+                                                 jlong jhandle) {
+  return reinterpret_cast<rocksdb::Options*>(jhandle)->use_direct_reads;
+}
+
+/*
+ * Class:     org_rocksdb_Options
+ * Method:    setUseDirectReads
+ * Signature: (JZ)V
+ */
+void Java_org_rocksdb_Options_setUseDirectReads(JNIEnv* env, jobject jobj,
+                                                jlong jhandle,
+                                                jboolean use_direct_reads) {
+  reinterpret_cast<rocksdb::Options*>(jhandle)->use_direct_reads =
+      static_cast<bool>(use_direct_reads);
+}
+
+/*
+ * Class:     org_rocksdb_Options
+ * Method:    useDirectWrites
+ * Signature: (J)Z
+ */
+jboolean Java_org_rocksdb_Options_useDirectWrites(JNIEnv* env, jobject jobj,
+                                                  jlong jhandle) {
+  return reinterpret_cast<rocksdb::Options*>(jhandle)->use_direct_writes;
+}
+
+/*
+ * Class:     org_rocksdb_Options
+ * Method:    setUseDirectReads
+ * Signature: (JZ)V
+ */
+void Java_org_rocksdb_Options_setUseDirectWrites(JNIEnv* env, jobject jobj,
+                                                 jlong jhandle,
+                                                 jboolean use_direct_writes) {
+  reinterpret_cast<rocksdb::Options*>(jhandle)->use_direct_writes =
+      static_cast<bool>(use_direct_writes);
 }
 
 /*
@@ -1508,10 +1545,11 @@ void Java_org_rocksdb_Options_setLevelCompactionDynamicLevelBytes(
 /*
  * Class:     org_rocksdb_Options
  * Method:    maxBytesForLevelMultiplier
- * Signature: (J)I
+ * Signature: (J)D
  */
-jint Java_org_rocksdb_Options_maxBytesForLevelMultiplier(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
+jdouble Java_org_rocksdb_Options_maxBytesForLevelMultiplier(JNIEnv* env,
+                                                            jobject jobj,
+                                                            jlong jhandle) {
   return reinterpret_cast<rocksdb::Options*>(
       jhandle)->max_bytes_for_level_multiplier;
 }
@@ -1519,86 +1557,35 @@ jint Java_org_rocksdb_Options_maxBytesForLevelMultiplier(
 /*
  * Class:     org_rocksdb_Options
  * Method:    setMaxBytesForLevelMultiplier
- * Signature: (JI)V
+ * Signature: (JD)V
  */
 void Java_org_rocksdb_Options_setMaxBytesForLevelMultiplier(
     JNIEnv* env, jobject jobj, jlong jhandle,
-    jint jmax_bytes_for_level_multiplier) {
-  reinterpret_cast<rocksdb::Options*>(
-      jhandle)->max_bytes_for_level_multiplier =
-          static_cast<int>(jmax_bytes_for_level_multiplier);
+    jdouble jmax_bytes_for_level_multiplier) {
+  reinterpret_cast<rocksdb::Options*>(jhandle)->max_bytes_for_level_multiplier =
+      static_cast<double>(jmax_bytes_for_level_multiplier);
 }
 
 /*
  * Class:     org_rocksdb_Options
- * Method:    expandedCompactionFactor
+ * Method:    maxCompactionBytes
  * Signature: (J)I
  */
-jint Java_org_rocksdb_Options_expandedCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::Options*>(
-      jhandle)->expanded_compaction_factor;
+jlong Java_org_rocksdb_Options_maxCompactionBytes(JNIEnv* env, jobject jobj,
+                                                  jlong jhandle) {
+  return static_cast<jlong>(
+      reinterpret_cast<rocksdb::Options*>(jhandle)->max_compaction_bytes);
 }
 
 /*
  * Class:     org_rocksdb_Options
- * Method:    setExpandedCompactionFactor
+ * Method:    setMaxCompactionBytes
  * Signature: (JI)V
  */
-void Java_org_rocksdb_Options_setExpandedCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle,
-    jint jexpanded_compaction_factor) {
-  reinterpret_cast<rocksdb::Options*>(
-      jhandle)->expanded_compaction_factor =
-          static_cast<int>(jexpanded_compaction_factor);
-}
-
-/*
- * Class:     org_rocksdb_Options
- * Method:    sourceCompactionFactor
- * Signature: (J)I
- */
-jint Java_org_rocksdb_Options_sourceCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::Options*>(
-      jhandle)->source_compaction_factor;
-}
-
-/*
- * Class:     org_rocksdb_Options
- * Method:    setSourceCompactionFactor
- * Signature: (JI)V
- */
-void Java_org_rocksdb_Options_setSourceCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle,
-        jint jsource_compaction_factor) {
-  reinterpret_cast<rocksdb::Options*>(
-      jhandle)->source_compaction_factor =
-          static_cast<int>(jsource_compaction_factor);
-}
-
-/*
- * Class:     org_rocksdb_Options
- * Method:    maxGrandparentOverlapFactor
- * Signature: (J)I
- */
-jint Java_org_rocksdb_Options_maxGrandparentOverlapFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::Options*>(
-      jhandle)->max_grandparent_overlap_factor;
-}
-
-/*
- * Class:     org_rocksdb_Options
- * Method:    setMaxGrandparentOverlapFactor
- * Signature: (JI)V
- */
-void Java_org_rocksdb_Options_setMaxGrandparentOverlapFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle,
-    jint jmax_grandparent_overlap_factor) {
-  reinterpret_cast<rocksdb::Options*>(
-      jhandle)->max_grandparent_overlap_factor =
-          static_cast<int>(jmax_grandparent_overlap_factor);
+void Java_org_rocksdb_Options_setMaxCompactionBytes(
+    JNIEnv* env, jobject jobj, jlong jhandle, jlong jmax_compaction_bytes) {
+  reinterpret_cast<rocksdb::Options*>(jhandle)->max_compaction_bytes =
+      static_cast<uint64_t>(jmax_compaction_bytes);
 }
 
 /*
@@ -2170,14 +2157,17 @@ jintArray Java_org_rocksdb_Options_maxBytesForLevelMultiplierAdditional(
 
   const size_t size = mbflma.size();
 
-  jint additionals[size];
+  jint* additionals = new jint[size];
   for (size_t i = 0; i < size; i++) {
-    additionals[i] = reinterpret_cast<jint>(mbflma[i]);
+    additionals[i] = static_cast<jint>(mbflma[i]);
   }
 
   jsize jlen = static_cast<jsize>(size);
   jintArray result = env->NewIntArray(jlen);
   env->SetIntArrayRegion(result, 0, jlen, additionals);
+
+  delete [] additionals;
+
   return result;
 }
 
@@ -2195,7 +2185,7 @@ void Java_org_rocksdb_Options_setMaxBytesForLevelMultiplierAdditional(
   auto* opt = reinterpret_cast<rocksdb::Options*>(jhandle);
   opt->max_bytes_for_level_multiplier_additional.clear();
   for (jsize i = 0; i < len; i++) {
-    opt->max_bytes_for_level_multiplier_additional.push_back(reinterpret_cast<int32_t>(additionals[i]));
+    opt->max_bytes_for_level_multiplier_additional.push_back(static_cast<int32_t>(additionals[i]));
   }
 }
 
@@ -2856,9 +2846,9 @@ void Java_org_rocksdb_ColumnFamilyOptions_setLevelCompactionDynamicLevelBytes(
 /*
  * Class:     org_rocksdb_ColumnFamilyOptions
  * Method:    maxBytesForLevelMultiplier
- * Signature: (J)I
+ * Signature: (J)D
  */
-jint Java_org_rocksdb_ColumnFamilyOptions_maxBytesForLevelMultiplier(
+jdouble Java_org_rocksdb_ColumnFamilyOptions_maxBytesForLevelMultiplier(
     JNIEnv* env, jobject jobj, jlong jhandle) {
   return reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
       jhandle)->max_bytes_for_level_multiplier;
@@ -2867,86 +2857,38 @@ jint Java_org_rocksdb_ColumnFamilyOptions_maxBytesForLevelMultiplier(
 /*
  * Class:     org_rocksdb_ColumnFamilyOptions
  * Method:    setMaxBytesForLevelMultiplier
- * Signature: (JI)V
+ * Signature: (JD)V
  */
 void Java_org_rocksdb_ColumnFamilyOptions_setMaxBytesForLevelMultiplier(
     JNIEnv* env, jobject jobj, jlong jhandle,
-    jint jmax_bytes_for_level_multiplier) {
-  reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->max_bytes_for_level_multiplier =
-          static_cast<int>(jmax_bytes_for_level_multiplier);
+    jdouble jmax_bytes_for_level_multiplier) {
+  reinterpret_cast<rocksdb::ColumnFamilyOptions*>(jhandle)
+      ->max_bytes_for_level_multiplier =
+      static_cast<double>(jmax_bytes_for_level_multiplier);
 }
 
 /*
  * Class:     org_rocksdb_ColumnFamilyOptions
- * Method:    expandedCompactionFactor
+ * Method:    maxCompactionBytes
  * Signature: (J)I
  */
-jint Java_org_rocksdb_ColumnFamilyOptions_expandedCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->expanded_compaction_factor;
+jlong Java_org_rocksdb_ColumnFamilyOptions_maxCompactionBytes(JNIEnv* env,
+                                                              jobject jobj,
+                                                              jlong jhandle) {
+  return static_cast<jlong>(
+      reinterpret_cast<rocksdb::ColumnFamilyOptions*>(jhandle)
+          ->max_compaction_bytes);
 }
 
 /*
  * Class:     org_rocksdb_ColumnFamilyOptions
- * Method:    setExpandedCompactionFactor
+ * Method:    setMaxCompactionBytes
  * Signature: (JI)V
  */
-void Java_org_rocksdb_ColumnFamilyOptions_setExpandedCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle,
-    jint jexpanded_compaction_factor) {
-  reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->expanded_compaction_factor =
-          static_cast<int>(jexpanded_compaction_factor);
-}
-
-/*
- * Class:     org_rocksdb_ColumnFamilyOptions
- * Method:    sourceCompactionFactor
- * Signature: (J)I
- */
-jint Java_org_rocksdb_ColumnFamilyOptions_sourceCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->source_compaction_factor;
-}
-
-/*
- * Class:     org_rocksdb_ColumnFamilyOptions
- * Method:    setSourceCompactionFactor
- * Signature: (JI)V
- */
-void Java_org_rocksdb_ColumnFamilyOptions_setSourceCompactionFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle,
-        jint jsource_compaction_factor) {
-  reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->source_compaction_factor =
-          static_cast<int>(jsource_compaction_factor);
-}
-
-/*
- * Class:     org_rocksdb_ColumnFamilyOptions
- * Method:    maxGrandparentOverlapFactor
- * Signature: (J)I
- */
-jint Java_org_rocksdb_ColumnFamilyOptions_maxGrandparentOverlapFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->max_grandparent_overlap_factor;
-}
-
-/*
- * Class:     org_rocksdb_ColumnFamilyOptions
- * Method:    setMaxGrandparentOverlapFactor
- * Signature: (JI)V
- */
-void Java_org_rocksdb_ColumnFamilyOptions_setMaxGrandparentOverlapFactor(
-    JNIEnv* env, jobject jobj, jlong jhandle,
-    jint jmax_grandparent_overlap_factor) {
-  reinterpret_cast<rocksdb::ColumnFamilyOptions*>(
-      jhandle)->max_grandparent_overlap_factor =
-          static_cast<int>(jmax_grandparent_overlap_factor);
+void Java_org_rocksdb_ColumnFamilyOptions_setMaxCompactionBytes(
+    JNIEnv* env, jobject jobj, jlong jhandle, jlong jmax_compaction_bytes) {
+  reinterpret_cast<rocksdb::ColumnFamilyOptions*>(jhandle)
+      ->max_compaction_bytes = static_cast<uint64_t>(jmax_compaction_bytes);
 }
 
 /*
@@ -3477,15 +3419,18 @@ jintArray Java_org_rocksdb_ColumnFamilyOptions_maxBytesForLevelMultiplierAdditio
 
   const size_t size = mbflma.size();
 
-  jint additionals[size];
+  jint* additionals = new jint[size];
   for (size_t i = 0; i < size; i++) {
-    additionals[i] = reinterpret_cast<jint>(mbflma[i]);
+    additionals[i] = static_cast<jint>(mbflma[i]);
   }
 
   jsize jlen = static_cast<jsize>(size);
   jintArray result;
   result = env->NewIntArray(jlen);
   env->SetIntArrayRegion(result, 0, jlen, additionals);
+
+  delete [] additionals;
+
   return result;
 }
 
@@ -3503,7 +3448,7 @@ void Java_org_rocksdb_ColumnFamilyOptions_setMaxBytesForLevelMultiplierAdditiona
   auto* cf_opt = reinterpret_cast<rocksdb::ColumnFamilyOptions*>(jhandle);
   cf_opt->max_bytes_for_level_multiplier_additional.clear();
   for (jsize i = 0; i < len; i++) {
-    cf_opt->max_bytes_for_level_multiplier_additional.push_back(reinterpret_cast<int32_t>(additionals[i]));
+    cf_opt->max_bytes_for_level_multiplier_additional.push_back(static_cast<int32_t>(additionals[i]));
   }
 }
 
@@ -3679,13 +3624,26 @@ jboolean Java_org_rocksdb_DBOptions_paranoidChecks(
 
 /*
  * Class:     org_rocksdb_DBOptions
+ * Method:    setOldRateLimiter
+ * Signature: (JJ)V
+ */
+void Java_org_rocksdb_DBOptions_setOldRateLimiter(
+    JNIEnv* env, jobject jobj, jlong jhandle, jlong jrate_limiter_handle) {
+  reinterpret_cast<rocksdb::DBOptions*>(jhandle)->rate_limiter.reset(
+      reinterpret_cast<rocksdb::RateLimiter*>(jrate_limiter_handle));
+}
+
+/*
+ * Class:     org_rocksdb_DBOptions
  * Method:    setRateLimiter
  * Signature: (JJ)V
  */
 void Java_org_rocksdb_DBOptions_setRateLimiter(
     JNIEnv* env, jobject jobj, jlong jhandle, jlong jrate_limiter_handle) {
-  reinterpret_cast<rocksdb::DBOptions*>(jhandle)->rate_limiter.reset(
-      reinterpret_cast<rocksdb::RateLimiter*>(jrate_limiter_handle));
+  std::shared_ptr<rocksdb::RateLimiter> *pRateLimiter =
+      reinterpret_cast<std::shared_ptr<rocksdb::RateLimiter> *>(
+          jrate_limiter_handle);
+  reinterpret_cast<rocksdb::DBOptions*>(jhandle)->rate_limiter = *pRateLimiter;
 }
 
 /*
@@ -4209,23 +4167,46 @@ jlong Java_org_rocksdb_DBOptions_manifestPreallocationSize(
 
 /*
  * Class:     org_rocksdb_DBOptions
- * Method:    setAllowOsBuffer
- * Signature: (JZ)V
+ * Method:    useDirectReads
+ * Signature: (J)Z
  */
-void Java_org_rocksdb_DBOptions_setAllowOsBuffer(
-    JNIEnv* env, jobject jobj, jlong jhandle, jboolean allow_os_buffer) {
-  reinterpret_cast<rocksdb::DBOptions*>(jhandle)->allow_os_buffer =
-      static_cast<bool>(allow_os_buffer);
+jboolean Java_org_rocksdb_DBOptions_useDirectReads(JNIEnv* env, jobject jobj,
+                                                   jlong jhandle) {
+  return reinterpret_cast<rocksdb::DBOptions*>(jhandle)->use_direct_reads;
 }
 
 /*
  * Class:     org_rocksdb_DBOptions
- * Method:    allowOsBuffer
+ * Method:    setUseDirectReads
+ * Signature: (JZ)V
+ */
+void Java_org_rocksdb_DBOptions_setUseDirectReads(JNIEnv* env, jobject jobj,
+                                                  jlong jhandle,
+                                                  jboolean use_direct_reads) {
+  reinterpret_cast<rocksdb::DBOptions*>(jhandle)->use_direct_reads =
+      static_cast<bool>(use_direct_reads);
+}
+
+/*
+ * Class:     org_rocksdb_DBOptions
+ * Method:    useDirectWrites
  * Signature: (J)Z
  */
-jboolean Java_org_rocksdb_DBOptions_allowOsBuffer(
-    JNIEnv* env, jobject jobj, jlong jhandle) {
-  return reinterpret_cast<rocksdb::DBOptions*>(jhandle)->allow_os_buffer;
+jboolean Java_org_rocksdb_DBOptions_useDirectWrites(JNIEnv* env, jobject jobj,
+                                                    jlong jhandle) {
+  return reinterpret_cast<rocksdb::DBOptions*>(jhandle)->use_direct_writes;
+}
+
+/*
+ * Class:     org_rocksdb_DBOptions
+ * Method:    setUseDirectReads
+ * Signature: (JZ)V
+ */
+void Java_org_rocksdb_DBOptions_setUseDirectWrites(JNIEnv* env, jobject jobj,
+                                                   jlong jhandle,
+                                                   jboolean use_direct_writes) {
+  reinterpret_cast<rocksdb::DBOptions*>(jhandle)->use_direct_writes =
+      static_cast<bool>(use_direct_writes);
 }
 
 /*

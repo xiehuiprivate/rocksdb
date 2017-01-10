@@ -352,51 +352,25 @@ public class ColumnFamilyOptions extends RocksObject
   }
 
   @Override
-  public ColumnFamilyOptions setMaxBytesForLevelMultiplier(
-      final int multiplier) {
+  public ColumnFamilyOptions setMaxBytesForLevelMultiplier(final double multiplier) {
     setMaxBytesForLevelMultiplier(nativeHandle_, multiplier);
     return this;
   }
 
   @Override
-  public int maxBytesForLevelMultiplier() {
+  public double maxBytesForLevelMultiplier() {
     return maxBytesForLevelMultiplier(nativeHandle_);
   }
 
   @Override
-  public ColumnFamilyOptions setExpandedCompactionFactor(
-      final int expandedCompactionFactor) {
-    setExpandedCompactionFactor(nativeHandle_, expandedCompactionFactor);
+  public ColumnFamilyOptions setMaxCompactionBytes(final long maxCompactionBytes) {
+    setMaxCompactionBytes(nativeHandle_, maxCompactionBytes);
     return this;
   }
 
   @Override
-  public int expandedCompactionFactor() {
-    return expandedCompactionFactor(nativeHandle_);
-  }
-
-  @Override
-  public ColumnFamilyOptions setSourceCompactionFactor(
-      final int sourceCompactionFactor) {
-    setSourceCompactionFactor(nativeHandle_, sourceCompactionFactor);
-    return this;
-  }
-
-  @Override
-  public int sourceCompactionFactor() {
-    return sourceCompactionFactor(nativeHandle_);
-  }
-
-  @Override
-  public ColumnFamilyOptions setMaxGrandparentOverlapFactor(
-      final int maxGrandparentOverlapFactor) {
-    setMaxGrandparentOverlapFactor(nativeHandle_, maxGrandparentOverlapFactor);
-    return this;
-  }
-
-  @Override
-  public int maxGrandparentOverlapFactor() {
-    return maxGrandparentOverlapFactor(nativeHandle_);
+  public long maxCompactionBytes() {
+    return maxCompactionBytes(nativeHandle_);
   }
 
   @Override
@@ -800,18 +774,10 @@ public class ColumnFamilyOptions extends RocksObject
       long handle, boolean enableLevelCompactionDynamicLevelBytes);
   private native boolean levelCompactionDynamicLevelBytes(
       long handle);
-  private native void setMaxBytesForLevelMultiplier(
-      long handle, int multiplier);
-  private native int maxBytesForLevelMultiplier(long handle);
-  private native void setExpandedCompactionFactor(
-      long handle, int expandedCompactionFactor);
-  private native int expandedCompactionFactor(long handle);
-  private native void setSourceCompactionFactor(
-      long handle, int sourceCompactionFactor);
-  private native int sourceCompactionFactor(long handle);
-  private native void setMaxGrandparentOverlapFactor(
-      long handle, int maxGrandparentOverlapFactor);
-  private native int maxGrandparentOverlapFactor(long handle);
+  private native void setMaxBytesForLevelMultiplier(long handle, double multiplier);
+  private native double maxBytesForLevelMultiplier(long handle);
+  private native void setMaxCompactionBytes(long handle, long maxCompactionBytes);
+  private native long maxCompactionBytes(long handle);
   private native void setSoftRateLimit(
       long handle, double softRateLimit);
   private native double softRateLimit(long handle);

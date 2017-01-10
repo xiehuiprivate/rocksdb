@@ -8,6 +8,7 @@
 #endif
 
 #include <cstdio>
+#include <cstdlib>
 
 #ifndef ROCKSDB_LITE
 #ifdef GFLAGS
@@ -80,8 +81,7 @@ class ColumnAwareEncodingExp {
     std::unordered_map<std::string, CompressionType> compressions = {
         {"kNoCompression", CompressionType::kNoCompression},
         {"kZlibCompression", CompressionType::kZlibCompression},
-        {"kZSTDNotFinalCompression",
-         CompressionType::kZSTDNotFinalCompression}};
+        {"kZSTD", CompressionType::kZSTD}};
 
     // Find Compression
     CompressionType compression_type = compressions[FLAGS_compression_type];

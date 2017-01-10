@@ -7,11 +7,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include "util/lru_cache.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 #include "util/mutexlock.h"
 
@@ -327,14 +332,17 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash, void* value,
     // is freed or the lru list is empty
     EvictFromLRU(charge, &last_reference_list);
 
-    if (strict_capacity_limit_ && usage_ - lru_usage_ + charge > capacity_) {
+    if (usage_ - lru_usage_ + charge > capacity_ &&
+        (strict_capacity_limit_ || handle == nullptr)) {
       if (handle == nullptr) {
+        // Don't insert the entry but still return ok, as if the entry inserted
+        // into cache and get evicted immediately.
         last_reference_list.push_back(e);
       } else {
         delete[] reinterpret_cast<char*>(e);
         *handle = nullptr;
+        s = Status::Incomplete("Insert failed due to LRU cache being full.");
       }
-      s = Status::Incomplete("Insert failed due to LRU cache being full.");
     } else {
       // insert into the cache
       // note that the cache might get larger than its capacity if not enough
@@ -405,48 +413,52 @@ size_t LRUCacheShard::GetPinnedUsage() const {
   return usage_ - lru_usage_;
 }
 
-class LRUCache : public ShardedCache {
- public:
-  LRUCache(size_t capacity, int num_shard_bits, bool strict_capacity_limit,
-           double high_pri_pool_ratio)
-      : ShardedCache(capacity, num_shard_bits, strict_capacity_limit) {
-    int num_shards = 1 << num_shard_bits;
-    shards_ = new LRUCacheShard[num_shards];
-    SetCapacity(capacity);
-    SetStrictCapacityLimit(strict_capacity_limit);
-    for (int i = 0; i < num_shards; i++) {
-      shards_[i].SetHighPriorityPoolRatio(high_pri_pool_ratio);
-    }
+std::string LRUCacheShard::GetPrintableOptions() const {
+  const int kBufferSize = 200;
+  char buffer[kBufferSize];
+  {
+    MutexLock l(&mutex_);
+    snprintf(buffer, kBufferSize, "    high_pri_pool_ratio: %.3lf\n",
+             high_pri_pool_ratio_);
   }
+  return std::string(buffer);
+}
 
-  virtual ~LRUCache() { delete[] shards_; }
-
-  virtual const char* Name() const override { return "LRUCache"; }
-  virtual CacheShard* GetShard(int shard) override {
-    return reinterpret_cast<CacheShard*>(&shards_[shard]);
+LRUCache::LRUCache(size_t capacity, int num_shard_bits,
+                   bool strict_capacity_limit, double high_pri_pool_ratio)
+    : ShardedCache(capacity, num_shard_bits, strict_capacity_limit) {
+  int num_shards = 1 << num_shard_bits;
+  shards_ = new LRUCacheShard[num_shards];
+  SetCapacity(capacity);
+  SetStrictCapacityLimit(strict_capacity_limit);
+  for (int i = 0; i < num_shards; i++) {
+    shards_[i].SetHighPriorityPoolRatio(high_pri_pool_ratio);
   }
+}
 
-  virtual const CacheShard* GetShard(int shard) const override {
-    return reinterpret_cast<CacheShard*>(&shards_[shard]);
-  }
+LRUCache::~LRUCache() { delete[] shards_; }
 
-  virtual void* Value(Handle* handle) override {
-    return reinterpret_cast<const LRUHandle*>(handle)->value;
-  }
+CacheShard* LRUCache::GetShard(int shard) {
+  return reinterpret_cast<CacheShard*>(&shards_[shard]);
+}
 
-  virtual size_t GetCharge(Handle* handle) const override {
-    return reinterpret_cast<const LRUHandle*>(handle)->charge;
-  }
+const CacheShard* LRUCache::GetShard(int shard) const {
+  return reinterpret_cast<CacheShard*>(&shards_[shard]);
+}
 
-  virtual uint32_t GetHash(Handle* handle) const override {
-    return reinterpret_cast<const LRUHandle*>(handle)->hash;
-  }
+void* LRUCache::Value(Handle* handle) {
+  return reinterpret_cast<const LRUHandle*>(handle)->value;
+}
 
-  virtual void DisownData() override { shards_ = nullptr; }
+size_t LRUCache::GetCharge(Handle* handle) const {
+  return reinterpret_cast<const LRUHandle*>(handle)->charge;
+}
 
- private:
-  LRUCacheShard* shards_;
-};
+uint32_t LRUCache::GetHash(Handle* handle) const {
+  return reinterpret_cast<const LRUHandle*>(handle)->hash;
+}
+
+void LRUCache::DisownData() { shards_ = nullptr; }
 
 std::shared_ptr<Cache> NewLRUCache(size_t capacity, int num_shard_bits,
                                    bool strict_capacity_limit,
